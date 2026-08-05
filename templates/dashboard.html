@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Calculations</title>
+</head>
+<body>
+  <h1>My Calculations</h1>
+  <p id="auth-error"></p>
+
+  <h2>Add a calculation</h2>
+  <form id="add-form">
+    <input id="a" name="a" placeholder="first number">
+    <input id="b" name="b" placeholder="second number">
+    <select id="type" name="type">
+      <option value="Add">Add</option>
+      <option value="Sub">Sub</option>
+      <option value="Multiply">Multiply</option>
+      <option value="Divide">Divide</option>
+    </select>
+    <button id="add-submit" type="submit">Add</button>
+  </form>
+  <p id="error"></p>
+  <p id="success"></p>
+
+  <h2>Saved calculations</h2>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>A</th><th>B</th><th>Type</th><th>Result</th><th></th></tr>
+    </thead>
+    <tbody id="calculations"></tbody>
+  </table>
+
+  <p><a href="/login">Log in</a></p>
+
+  <script>
+    const token = localStorage.getItem("access_token");
+    const error = document.getElementById("error");
+    const success = document.getElementById("success");
+    const authError = document.getElementById("auth-error");
+
+    function authHeaders() {
+      return {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+      };
+    }
+
+    async function loadCalculations() {
+      const response = await fetch("/calculations", { headers: authHeaders() });
+      if (response.status === 401) {
+        authError.textContent = "Not authenticated. Please log in.";
+        return;
+      }
+      const rows = await response.json();
+      const body = document.getElementById("calculations");
+      body.innerHTML = "";
+      for (const row of rows) {
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-id", row.id);
+        tr.innerHTML =
+          "<td>" + row.id + "</td>" +
+          "<td class='cell-a'>" + row.a + "</td>" +
+          "<td class='cell-b'>" + row.b + "</td>" +
+          "<td class='cell-type'>" + row.type + "</td>" +
+          "<td class='cell-result'>" + row.result + "</td>";
+        const actions = document.createElement("td");
+
+        const editButton = document.createElement("button");
+        editButton.textContent = "Edit";
+        editButton.className = "edit";
+        editButton.addEventListener("click", () => editCalculation(row));
+
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Delete";
+        deleteButton.className = "delete";
+        deleteButton.addEventListener("click", () => deleteCalculation(row.id));
+
+        actions.appendChild(editButton);
+        actions.appendChild(deleteButton);
+        tr.appendChild(actions);
+        body.appendChild(tr);
+      }
+    }
+
+    async function editCalculation(row) {
+      const a = prompt("First number", row.a);
+      const b = prompt("Second number", row.b);
+      const type = prompt("Type (Add, Sub, Multiply, Divide)", row.type);
+      if (a === null || b === null || type === null) return;
+      const response = await fetch("/calculations/" + row.id, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({ a: Number(a), b: Number(b), type: type }),
+      });
+      if (response.ok) {
+        success.textContent = "Calculation updated";
+        loadCalculations();
+      } else {
+        error.textContent = "Could not update calculation";
+      }
+    }
+
+    async function deleteCalculation(id) {
+      const response = await fetch("/calculations/" + id, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (response.ok) {
+        success.textContent = "Calculation deleted";
+        loadCalculations();
+      } else {
+        error.textContent = "Could not delete calculation";
+      }
+    }
+
+    document.getElementById("add-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      error.textContent = "";
+      success.textContent = "";
+
+      const a = document.getElementById("a").value;
+      const b = document.getElementById("b").value;
+      const type = document.getElementById("type").value;
+
+      if (a === "" || isNaN(Number(a)) || b === "" || isNaN(Number(b))) {
+        error.textContent = "Both operands must be numbers";
+        return;
+      }
+      if (type === "Divide" && Number(b) === 0) {
+        error.textContent = "Cannot divide by zero";
+        return;
+      }
+
+      const response = await fetch("/calculations", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ a: Number(a), b: Number(b), type: type }),
+      });
+
+      if (response.ok) {
+        success.textContent = "Calculation added";
+        loadCalculations();
+      } else if (response.status === 401) {
+        error.textContent = "Not authenticated. Please log in.";
+      } else {
+        error.textContent = "Could not add calculation";
+      }
+    });
+
+    loadCalculations();
+  </script>
+</body>
+</html>

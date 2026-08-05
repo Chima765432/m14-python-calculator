@@ -47,6 +47,7 @@
         const data = await response.json();
         localStorage.setItem("access_token", data.access_token);
         success.textContent = "Login successful";
+        window.location.href = "/dashboard";
       } else {
         error.textContent = "Invalid credentials";
       }

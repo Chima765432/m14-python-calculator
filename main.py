@@ -7,6 +7,7 @@ from app.models.calculation import Calculation
 from app.models.user import User
 from app.schemas.calculation import CalculationCreate, CalculationRead
 from app.auth import create_access_token
+from app.dependencies import get_current_user
 from app.schemas.user import UserCreate, UserLogin, UserRead, UserToken
 
 app = FastAPI(title="Calculations API")
@@ -23,6 +24,11 @@ def register_page(request: Request):
 @app.get("/login")
 def login_page(request: Request):
     return templates.TemplateResponse(request, "login.html")
+
+
+@app.get("/dashboard")
+def dashboard_page(request: Request):
+    return templates.TemplateResponse(request, "dashboard.html")
 
 
 @app.post("/users/register", response_model=UserToken, status_code=201)
@@ -68,21 +74,33 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
 
 
 @app.get("/calculations", response_model=list[CalculationRead])
-def browse_calculations(db: Session = Depends(get_db)):
-    return db.query(Calculation).all()
+def browse_calculations(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+):
+    return db.query(Calculation).filter(Calculation.user_id == user.id).all()
 
 
 @app.get("/calculations/{calculation_id}", response_model=CalculationRead)
-def read_calculation(calculation_id: int, db: Session = Depends(get_db)):
+def read_calculation(
+    calculation_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     calculation = db.get(Calculation, calculation_id)
-    if calculation is None:
+    if calculation is None or calculation.user_id != user.id:
         raise HTTPException(status_code=404, detail="Calculation not found")
     return calculation
 
 
 @app.post("/calculations", response_model=CalculationRead, status_code=201)
-def add_calculation(payload: CalculationCreate, db: Session = Depends(get_db)):
-    calculation = Calculation(a=payload.a, b=payload.b, type=payload.type.value)
+def add_calculation(
+    payload: CalculationCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    calculation = Calculation(
+        a=payload.a, b=payload.b, type=payload.type.value, user_id=user.id
+    )
     calculation.compute()
     db.add(calculation)
     db.commit()
@@ -92,10 +110,13 @@ def add_calculation(payload: CalculationCreate, db: Session = Depends(get_db)):
 
 @app.put("/calculations/{calculation_id}", response_model=CalculationRead)
 def edit_calculation(
-    calculation_id: int, payload: CalculationCreate, db: Session = Depends(get_db)
+    calculation_id: int,
+    payload: CalculationCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     calculation = db.get(Calculation, calculation_id)
-    if calculation is None:
+    if calculation is None or calculation.user_id != user.id:
         raise HTTPException(status_code=404, detail="Calculation not found")
     calculation.a = payload.a
     calculation.b = payload.b
@@ -107,9 +128,13 @@ def edit_calculation(
 
 
 @app.delete("/calculations/{calculation_id}", status_code=204)
-def delete_calculation(calculation_id: int, db: Session = Depends(get_db)):
+def delete_calculation(
+    calculation_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     calculation = db.get(Calculation, calculation_id)
-    if calculation is None:
+    if calculation is None or calculation.user_id != user.id:
         raise HTTPException(status_code=404, detail="Calculation not found")
     db.delete(calculation)
     db.commit()
