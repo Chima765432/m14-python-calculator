@@ -2,7 +2,7 @@ services:
 
   db:
     image: postgres:16
-    container_name: m10_postgres
+    container_name: m14_postgres
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - m10_postgres_data:/var/lib/postgresql/data
+      - m14_postgres_data:/var/lib/postgresql/data
 
 volumes:
-  m10_postgres_data:
+  m14_postgres_data:
