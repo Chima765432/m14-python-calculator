@@ -83,12 +83,36 @@
       }
     }
 
+    function clearMessages() {
+      error.textContent = "";
+      success.textContent = "";
+    }
+
     async function editCalculation(row) {
-      const a = prompt("First number", row.a);
-      const b = prompt("Second number", row.b);
-      const type = prompt("Type (Add, Sub, Multiply, Divide)", row.type);
+      clearMessages();
+      const current = await fetch("/calculations/" + row.id, { headers: authHeaders() });
+      if (!current.ok) {
+        error.textContent = "Could not load calculation";
+        return;
+      }
+      const existing = await current.json();
+      const a = prompt("First number", existing.a);
+      const b = prompt("Second number", existing.b);
+      const type = prompt("Type (Add, Sub, Multiply, Divide)", existing.type);
       if (a === null || b === null || type === null) return;
-      const response = await fetch("/calculations/" + row.id, {
+      if (a === "" || isNaN(Number(a)) || b === "" || isNaN(Number(b))) {
+        error.textContent = "Both operands must be numbers";
+        return;
+      }
+      if (!["Add", "Sub", "Multiply", "Divide"].includes(type)) {
+        error.textContent = "Type must be Add, Sub, Multiply, or Divide";
+        return;
+      }
+      if (type === "Divide" && Number(b) === 0) {
+        error.textContent = "Cannot divide by zero";
+        return;
+      }
+      const response = await fetch("/calculations/" + existing.id, {
         method: "PUT",
         headers: authHeaders(),
         body: JSON.stringify({ a: Number(a), b: Number(b), type: type }),
@@ -102,6 +126,7 @@
     }
 
     async function deleteCalculation(id) {
+      clearMessages();
       const response = await fetch("/calculations/" + id, {
         method: "DELETE",
         headers: authHeaders(),

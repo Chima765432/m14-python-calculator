@@ -57,3 +57,16 @@ def live_server():
     yield "http://127.0.0.1:8001"
     process.terminate()
     process.wait()
+
+
+@pytest.fixture
+def auth_client(client):
+    payload = {
+        "username": "owner",
+        "email": "owner@example.com",
+        "password": "longenough1",
+    }
+    response = client.post("/users/register", json=payload)
+    token = response.json()["access_token"]
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    return client

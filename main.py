@@ -77,7 +77,12 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
 def browse_calculations(
     db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ):
-    return db.query(Calculation).filter(Calculation.user_id == user.id).all()
+    return (
+        db.query(Calculation)
+        .filter(Calculation.user_id == user.id)
+        .order_by(Calculation.id)
+        .all()
+    )
 
 
 @app.get("/calculations/{calculation_id}", response_model=CalculationRead)

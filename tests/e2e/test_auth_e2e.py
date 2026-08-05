@@ -35,7 +35,7 @@ def test_login_with_correct_credentials_stores_token(page, live_server):
     page.fill("#email", email)
     page.fill("#password", "longenough1")
     page.click("#submit")
-    expect(page.locator("#success")).to_have_text("Login successful")
+    page.wait_for_url("**/dashboard")
     assert page.evaluate("localStorage.getItem('access_token')")
 
 
