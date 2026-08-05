@@ -50,4 +50,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: chima765432/m13-python-calculator:latest
+          tags: chima765432/m14-python-calculator:latest

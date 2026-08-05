@@ -57,6 +57,6 @@ Every push runs the full suite in GitHub Actions against a PostgreSQL service
 container, browser tests included. If tests pass on main, the image is built
 and pushed to Docker Hub:
 
-https://hub.docker.com/r/chima765432/m13-python-calculator
+https://hub.docker.com/r/chima765432/m14-python-calculator
 
-    docker pull chima765432/m13-python-calculator:latest
+    docker pull chima765432/m14-python-calculator:latest
